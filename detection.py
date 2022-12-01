@@ -17,7 +17,7 @@ from torchvision.models.detection import maskrcnn_resnet50_fpn_v2, MaskRCNN_ResN
 #The first thing to do is to hard code images to test... We'll add in args later
 
 # Load Image to process
-tennis = Image.open("images/control.jpg")
+tennis = Image.open("images/angled_racket.jpg")
 tennis_offset = Image.open("images/40_percent.jpg")
 # Convert to torch tensor
 tennis_tensor = pil_to_tensor(tennis)
@@ -58,14 +58,19 @@ tennis_np = np.asarray(tennis)
 tennis_snip = tennis_np[int(bb0[1]):int(bb0[3]),int(bb0[0]):int(bb0[2])]
 
 # Use the bound box given to use by model to isolate tennis racket (Experiment)
-bb0 = offset_preds[0]["boxes"][0]
+bb1 = offset_preds[0]["boxes"][0]
 tennis_np = np.asarray(tennis_offset)
-offset_snip = tennis_np[int(bb0[1]):int(bb0[3]),int(bb0[0]):int(bb0[2])]
+offset_snip = tennis_np[int(bb1[1]):int(bb1[3]),int(bb1[0]):int(bb1[2])]
 
 
-final_image = to_pil_image(tennis_preds[0]["masks"][0])
+final_image_pil = to_pil_image(tennis_preds[0]["masks"][0])
+final_image_np = np.array(final_image_pil)
+final_image_np = cv2.cvtColor(final_image_np, cv2.COLOR_GRAY2BGR)
 
-final_image.show()
+cv2.imwrite('pog.jpg', final_image_np)
+
+
+
 
 
 
