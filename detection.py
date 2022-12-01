@@ -16,63 +16,46 @@ from torchvision.models.detection import maskrcnn_resnet50_fpn_v2, MaskRCNN_ResN
 
 #The first thing to do is to hard code images to test... We'll add in args later
 
-# Load Image to process
-tennis = Image.open("images/angled_racket.jpg")
-tennis_offset = Image.open("images/40_percent.jpg")
-# Convert to torch tensor
-tennis_tensor = pil_to_tensor(tennis)
-tennis_offset_tensor = pil_to_tensor(tennis_offset)
-# Add batch dimension
-tennis_tensor_b = tennis_tensor.unsqueeze(dim=0)
-tennis_offset_b = tennis_offset_tensor.unsqueeze(dim=0)
-# Convert to float
-tennis_tensor_float = tennis_tensor_b/255.0
-tennis_offset_float = tennis_offset_b/255.0
-# Load Model
-Weights = MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT
-model = maskrcnn_resnet50_fpn_v2(weights=Weights, box_score_thresh=0.9)
-model.eval(); ## Setting Model for Evaluation/Prediction
-
-# Detect Objects
-tennis_preds = model(tennis_tensor_float)
-offset_preds = model(tennis_offset_float)
-
-print(tennis_preds)
-
-tennis_preds[0]["boxes"]  = tennis_preds[0]["boxes"][tennis_preds[0]["labels"] == 43]
-tennis_preds[0]["masks"]  = tennis_preds[0]["masks"][tennis_preds[0]["labels"] == 43]
-tennis_preds[0]["scores"] = tennis_preds[0]["scores"][tennis_preds[0]["labels"] == 43]
-tennis_preds[0]["labels"] = tennis_preds[0]["labels"][tennis_preds[0]["labels"] == 43]
-
-
-offset_preds[0]["boxes"]  = tennis_preds[0]["boxes"][tennis_preds[0]["labels"] == 43]
-offset_preds[0]["masks"]  = tennis_preds[0]["masks"][tennis_preds[0]["labels"] == 43]
-offset_preds[0]["scores"] = tennis_preds[0]["scores"][tennis_preds[0]["labels"] == 43]
-offset_preds[0]["labels"] = tennis_preds[0]["labels"][tennis_preds[0]["labels"] == 43]
-
-tennis_tensor = draw_bounding_boxes(tennis_tensor, boxes=tennis_preds[0]["boxes"], labels=["Racket"], colors="red", width=2, font_size=20)
-
-# Use the bound box given to use by model to isolate tennis racket (Control)
-bb0 = tennis_preds[0]["boxes"][0]
-tennis_np = np.asarray(tennis)
-tennis_snip = tennis_np[int(bb0[1]):int(bb0[3]),int(bb0[0]):int(bb0[2])]
-
-# Use the bound box given to use by model to isolate tennis racket (Experiment)
-bb1 = offset_preds[0]["boxes"][0]
-tennis_np = np.asarray(tennis_offset)
-offset_snip = tennis_np[int(bb1[1]):int(bb1[3]),int(bb1[0]):int(bb1[2])]
-
-
-final_image_pil = to_pil_image(tennis_preds[0]["masks"][0])
-final_image_np = np.array(final_image_pil)
-final_image_np = cv2.cvtColor(final_image_np, cv2.COLOR_GRAY2BGR)
-
-cv2.imwrite('pog.jpg', final_image_np)
-
-
-
-
-
+def detect(filename):
+    # Load Image to process
+    tennis = Image.open(filename)
+    #Get Image size to compute if we need to rotate
+    rotate = False
+    [width, height] = tennis.size
+    if height > width:
+        rotate = True
+    # Convert to torch tensor
+    tennis_tensor = pil_to_tensor(tennis)
+    # Add batch dimension
+    tennis_tensor_b = tennis_tensor.unsqueeze(dim=0)
+    # Convert to float
+    tennis_tensor_float = tennis_tensor_b/255.0
+    # Load Model
+    Weights = MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT
+    model = maskrcnn_resnet50_fpn_v2(weights=Weights, box_score_thresh=0.9)
+    model.eval(); ## Setting Model for Evaluation/Prediction
+    
+    # Detect Objects
+    tennis_preds = model(tennis_tensor_float)
+    
+    print(tennis_preds)
+    
+    tennis_preds[0]["boxes"]  = tennis_preds[0]["boxes"][tennis_preds[0]["labels"] == 43]
+    tennis_preds[0]["masks"]  = tennis_preds[0]["masks"][tennis_preds[0]["labels"] == 43]
+    tennis_preds[0]["scores"] = tennis_preds[0]["scores"][tennis_preds[0]["labels"] == 43]
+    tennis_preds[0]["labels"] = tennis_preds[0]["labels"][tennis_preds[0]["labels"] == 43]
+    
+    tennis_tensor = draw_bounding_boxes(tennis_tensor, boxes=tennis_preds[0]["boxes"], labels=["Racket"], colors="red", width=2, font_size=20)
+    
+    final_image_pil = to_pil_image(tennis_preds[0]["masks"][0])
+    final_image_np = np.array(final_image_pil)
+    if rotate:
+        final_image_np = np.rot90(final_image_np,3)
+    
+    cv2.imwrite('pog.jpg', final_image_np)
+    final_image_np = cv2.imread('pog.jpg')
+    final_image_np = cv2.cvtColor(final_image_np, cv2.COLOR_BGR2GRAY)
+    return final_image_np
 
 #Thing todo...
 
